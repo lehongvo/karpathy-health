@@ -82,7 +82,22 @@ This is the high-end of deep work — not sustainable as a daily mode for someon
 
 ---
 
-## G. What we don't endorse
+## G. Tactic — Write before you meet (from Patrick Collison / Stripe)
+
+Stripe runs on pre-read memos, async-first updates, and "living documents." The mechanism is simple: **writing forces precision before a meeting starts**, which means meetings are 10 minutes of decision instead of 50 minutes of context-building.
+
+For a solo dev with multiple jobs:
+
+- **Before any 30+ min meeting you call**: write a 1-page memo (problem, options, recommendation, asks). Send it 24h ahead.
+- **Before any 30+ min meeting you attend**: ask for the memo. If there isn't one, decline or convert to async.
+- **Before starting any deep work block**: write the ONE question you'll answer in the block (already in §B above).
+- **Weekly review**: write 3 wins + 1 lesson + tomorrow's MIT (already in `/review/daily`).
+
+Source: Collison interview in [*High Growth Handbook*](https://growth.eladgil.com/book/chapter-5-organizational-structure-and-hypergrowth/you-cant-delegate-culture-an-interview-with-patrick-collison/) — "you really can't delegate culture; it's a fundamental CEO responsibility." Plus DHH on async-first ([`world.hey.com/dhh`](https://world.hey.com/dhh)).
+
+This is **not** a separate principle — it's the implementation detail that makes "deep work compounds" actually work in practice.
+
+## H. What we don't endorse
 
 - **Pomodoro (25/5)** as a default. Useful for restarting after a slump, but 25 min is too short for genuinely hard problems. Use 90/15 instead.
 - **"Always be in flow"** rhetoric. Flow is rare and not a daily target. Steady deep work is.

@@ -94,6 +94,15 @@ Seven principles that survive expert cross-check. Every principle has ≥2 indep
 
 ---
 
+## Cross-witness — Patrick Collison
+
+Stripe co-founder/CEO. His public writing corroborates several principles above and adds nuance:
+
+- **#5 "Compounding beats burst"** — corroborated *with a twist*. Collison's [`patrickcollison.com/fast`](https://patrickcollison.com/fast) catalogs historical bursts (Git self-hosting in 4 days, P-80 Shooting Star in 143 days). Read together: compounding is the long-game default, *but* concentrated bursts by small high-agency teams unlock what compounding alone won't.
+- **#6 "Saying no is the highest-leverage skill"** — Collison's "trapdoor decisions warrant conservatism" framing ([Tim Ferriss #353](https://tim.blog/2018/12/24/the-tim-ferriss-show-patrick-collison/)). Reversible decisions: move fast. Irreversible (trapdoor): say no by default.
+- **#7 "Only build what compounds"** — corroborated by [Stripe Press](https://press.stripe.com) republishing durable classics (*Poor Charlie's Almanack*, *The Dream Machine*) and Collison's "bias toward older books" rule. Durable text > churn.
+- **NEW tactic — write before you meet.** Stripe's pre-read memos + "living documents" treat writing as the unit of thought (see [Collison interview in *High Growth Handbook*](https://growth.eladgil.com/book/chapter-5-organizational-structure-and-hypergrowth/you-cant-delegate-culture-an-interview-with-patrick-collison/)). Folded into [`03-attention-protocol.md`](./03-attention-protocol.md) as the "write-first" tactic, not promoted to a top-level principle (it's an implementation of #2 Deep Work, not a separate axis).
+
 ## What we deliberately rejected
 
 | Rejected principle | Why |
