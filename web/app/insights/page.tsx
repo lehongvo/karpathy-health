@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { format, subDays } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Download } from "lucide-react";
+import { Container } from "@/components/chrome/Container";
+import { Button } from "@/components/primitives/Button";
+import { sleepRepo, deepWorkRepo, exerciseRepo } from "@/lib/db/repos";
+import { exportAll } from "@/lib/db";
 import { computeInsights, rollingMetrics, type RollingMetrics } from "@/lib/analytics";
-import { exportAll, getRangeByDate } from "@/lib/db";
 import type { Insight } from "@/lib/types";
 
-const WINDOWS: { label: string; days: number }[] = [
+const WINDOWS = [
   { label: "30d", days: 30 },
   { label: "60d", days: 60 },
   { label: "90d", days: 90 },
@@ -17,22 +18,20 @@ const WINDOWS: { label: string; days: number }[] = [
 
 export default function InsightsPage() {
   const [insights, setInsights] = useState<Insight[]>([]);
-  const [metricsByWindow, setMetricsByWindow] = useState<Record<number, RollingMetrics>>({});
+  const [byWindow, setByWindow] = useState<Record<number, RollingMetrics>>({});
 
   useEffect(() => {
     (async () => {
       const widest = Math.max(...WINDOWS.map((w) => w.days));
       const from = format(subDays(new Date(), widest - 1), "yyyy-MM-dd");
       const to = format(new Date(), "yyyy-MM-dd");
-      const sleep = await getRangeByDate("sleep", from, to);
-      const dw = await getRangeByDate("deepWork", from, to);
-      const ex = await getRangeByDate("exercise", from, to);
+      const sleep = await sleepRepo.byRange(from, to);
+      const dw = await deepWorkRepo.byRange(from, to);
+      const ex = await exerciseRepo.byRange(from, to);
       setInsights(computeInsights(sleep, dw, ex, 30));
-      const m: Record<number, RollingMetrics> = {};
-      for (const w of WINDOWS) {
-        m[w.days] = rollingMetrics(sleep, dw, ex, w.days);
-      }
-      setMetricsByWindow(m);
+      const next: Record<number, RollingMetrics> = {};
+      for (const w of WINDOWS) next[w.days] = rollingMetrics(sleep, dw, ex, w.days);
+      setByWindow(next);
     })();
   }, []);
 
@@ -42,89 +41,75 @@ export default function InsightsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `personal-os-export-${format(new Date(), "yyyy-MM-dd")}.json`;
+    a.download = `personal-os-${format(new Date(), "yyyy-MM-dd")}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between">
+    <Container className="py-8 md:py-12 space-y-10">
+      <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
-          <p className="text-sm text-muted-foreground">
-            Auto-detected correlations + rolling trends. Threshold: |r| ≥ 0.3, n ≥ 7.
+          <h1 className="font-serif text-3xl mb-1">Insights</h1>
+          <p className="text-sm text-muted">
+            Auto-detected correlations. Threshold: |r| ≥ 0.3, n ≥ 7. Use as hypotheses, not laws.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={downloadJSON}>
-          Export JSON
+        <Button size="sm" variant="outline" onClick={downloadJSON}>
+          <Download className="h-3.5 w-3.5" /> Export JSON
         </Button>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Rolling metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-3">
-            {WINDOWS.map((w) => {
-              const m = metricsByWindow[w.days];
-              return (
-                <div key={w.days} className="rounded-md border bg-card/50 p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{w.label}</div>
-                  <div className="space-y-1 text-sm">
-                    <Row label="Sleep avg" value={m ? `${m.sleepAvg}h` : "—"} />
-                    <Row label="Nights <6h" value={m ? String(m.nightsBelow6) : "—"} />
-                    <Row label="Exercise sessions" value={m ? String(m.exerciseSessions) : "—"} />
-                    <Row label="Deep work hours" value={m ? `${m.deepWorkHours}h` : "—"} />
-                    <Row label="Days w/ deep work" value={m ? `${m.daysWithDeepWork}/${w.days}` : "—"} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <section>
+        <h2 className="font-serif text-xl mb-4">Rolling metrics</h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          {WINDOWS.map((w) => {
+            const m = byWindow[w.days];
+            return (
+              <div key={w.days} className="space-y-1">
+                <div className="text-[10px] uppercase tracking-widest text-muted mb-2">{w.label}</div>
+                <Row label="Sleep avg" value={m ? `${m.sleepAvg}h` : "—"} />
+                <Row label="Nights <6h" value={m ? String(m.nightsBelow6) : "—"} />
+                <Row label="Exercise sessions" value={m ? String(m.exerciseSessions) : "—"} />
+                <Row label="Deep work hours" value={m ? `${m.deepWorkHours}h` : "—"} />
+                <Row label="Days w/ deep work" value={m ? `${m.daysWithDeepWork}/${w.days}` : "—"} />
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Correlations</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {insights.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Not enough data yet — need ≥7 days. Or no correlation passed the |r| ≥ 0.3 threshold.
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {insights.map((i) => (
-                <li key={i.id} className="rounded-md border bg-card/50 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium">{i.title}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{i.description}</div>
-                    </div>
-                    <Badge variant={i.direction === "positive" ? "success" : "warning"}>
-                      r = {i.effectSize.toFixed(2)}
-                    </Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="mt-3 text-xs text-muted-foreground">
-            Correlation is not causation. Use these as hypotheses to test, not laws.
+      <section>
+        <h2 className="font-serif text-xl mb-4">Correlations</h2>
+        {insights.length === 0 ? (
+          <p className="text-sm text-muted">
+            Not enough data yet — need ≥7 days. Or no correlation passed the |r| ≥ 0.3 threshold.
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        ) : (
+          <ul className="space-y-3">
+            {insights.map((i) => (
+              <li key={i.id} className="border-l-2 border-accent pl-4 py-2">
+                <div className="font-medium">{i.title}</div>
+                <div className="mt-1 text-xs text-muted flex items-center gap-3">
+                  <span>{i.description}</span>
+                  <span className={`font-mono ${i.direction === "positive" ? "text-good" : "text-alert"}`}>
+                    r = {i.effectSize.toFixed(2)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-4 text-xs text-muted">Correlation is not causation. These are starting points for experiments.</p>
+      </section>
+    </Container>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="flex items-baseline justify-between py-1.5 border-b border-border last:border-0">
+      <span className="text-xs text-muted">{label}</span>
       <span className="font-mono text-sm">{value}</span>
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Container } from "@/components/chrome/Container";
+import { Button } from "@/components/primitives/Button";
 
 export default function ErrorBoundary({
   error,
@@ -14,16 +14,13 @@ export default function ErrorBoundary({
   useEffect(() => {
     console.error(error);
   }, [error]);
-
   return (
-    <Card className="border-[hsl(var(--destructive))]/50">
-      <CardHeader>
-        <CardTitle>Something failed</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">{error.message}</p>
-        <Button onClick={reset}>Try again</Button>
-      </CardContent>
-    </Card>
+    <Container className="py-12">
+      <h1 className="font-serif text-2xl mb-2">Something failed</h1>
+      <p className="text-sm text-muted mb-6">{error.message}</p>
+      <Button onClick={reset} variant="outline">
+        Try again
+      </Button>
+    </Container>
   );
 }

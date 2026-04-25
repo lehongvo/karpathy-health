@@ -1,21 +1,10 @@
-import { getDB, getMeta, setMeta } from "./db";
-import type {
-  SleepLog,
-  ExerciseLog,
-  DeepWorkBlock,
-  Project,
-  Task,
-  EnergyLog,
-  ExerciseType,
-} from "./types";
+import { getMeta, setMeta } from "./db";
+import { sleepRepo, exerciseRepo, deepWorkRepo, projectRepo, energyRepo, taskRepo } from "./db/repos";
 import { format, subDays } from "date-fns";
+import type { ExerciseType } from "./types";
 
-const SEED_FLAG = "seeded-v1";
+const SEED_FLAG = "seeded-v2";
 
-/**
- * Deterministic pseudo-random — so dummy data is stable across reloads
- * and reviews. Mulberry32.
- */
 function rng(seed: number): () => number {
   let a = seed;
   return () => {
@@ -27,80 +16,49 @@ function rng(seed: number): () => number {
   };
 }
 
-const PROJECTS: Project[] = [
-  {
-    id: "rust-solana",
-    name: "Rust / Solana",
-    status: "active",
-    color: "#ce422b",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "fulltime-job",
-    name: "Full-time job",
-    status: "active",
-    color: "#10b981",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "interview-prep",
-    name: "Interview prep",
-    status: "maintenance",
-    color: "#f59e0b",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "personal-site",
-    name: "Personal site",
-    status: "paused",
-    color: "#8884d8",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
+const PROJECTS = [
+  { id: "rust-solana", name: "Rust / Solana", status: "active" as const, color: "#ce422b" },
+  { id: "fulltime-job", name: "Full-time job", status: "active" as const, color: "#2e7d5b" },
+  { id: "interview-prep", name: "Interview prep", status: "maintenance" as const, color: "#a8513e" },
+  { id: "personal-site", name: "Personal site", status: "paused" as const, color: "#8884d8" },
 ];
+
+const EX_TYPES: ExerciseType[] = ["cardio", "strength", "walk", "yoga"];
 
 export async function seedIfEmpty(): Promise<void> {
   const flag = await getMeta(SEED_FLAG);
   if (flag) return;
 
-  const db = await getDB();
   const r = rng(20260425);
-
+  const now = Date.now();
   for (const p of PROJECTS) {
-    await db.put("projects", p);
+    await projectRepo.put({ ...p, createdAt: now, updatedAt: now });
   }
 
-  const exerciseTypes: ExerciseType[] = ["cardio", "strength", "walk", "yoga"];
   for (let i = 30; i >= 0; i--) {
     const day = subDays(new Date(), i);
     const date = format(day, "yyyy-MM-dd");
-
     const sleepHours = 6.2 + r() * 2.1;
-    const bedHour = 22 + r() * 1.5;
+    const bedHour = Math.floor(22 + r() * 1.5);
     const bedMin = Math.floor(r() * 60);
-    const sleepLog: SleepLog = {
+    await sleepRepo.put({
       date,
-      bedtime: `${String(Math.floor(bedHour)).padStart(2, "0")}:${String(bedMin).padStart(2, "0")}`,
+      bedtime: `${String(bedHour).padStart(2, "0")}:${String(bedMin).padStart(2, "0")}`,
       wakeTime: `${String(Math.floor((bedHour + sleepHours) % 24)).padStart(2, "0")}:${String(
         Math.floor(r() * 60),
       ).padStart(2, "0")}`,
       hours: Math.round(sleepHours * 10) / 10,
-      quality: (Math.min(5, Math.max(1, Math.round(sleepHours - 4))) as 1 | 2 | 3 | 4 | 5),
-    };
-    await db.put("sleep", sleepLog as SleepLog & { id?: number });
+      quality: Math.min(5, Math.max(1, Math.round(sleepHours - 4))) as 1 | 2 | 3 | 4 | 5,
+    });
 
     if (r() > 0.35) {
-      const type = exerciseTypes[Math.floor(r() * exerciseTypes.length)];
-      const ex: ExerciseLog = {
+      const t = EX_TYPES[Math.floor(r() * EX_TYPES.length)];
+      await exerciseRepo.put({
         date,
-        type,
-        durationMin: type === "walk" ? 25 + Math.floor(r() * 25) : 30 + Math.floor(r() * 35),
-        intensity: (Math.min(5, Math.max(1, Math.ceil(r() * 5))) as 1 | 2 | 3 | 4 | 5),
-      };
-      await db.put("exercise", ex as ExerciseLog & { id?: number });
+        type: t,
+        durationMin: t === "walk" ? 25 + Math.floor(r() * 25) : 30 + Math.floor(r() * 35),
+        intensity: Math.min(5, Math.max(1, Math.ceil(r() * 5))) as 1 | 2 | 3 | 4 | 5,
+      });
     }
 
     const blocks = sleepHours > 7 ? 1 + Math.floor(r() * 2) : Math.floor(r() * 2);
@@ -108,29 +66,28 @@ export async function seedIfEmpty(): Promise<void> {
       const startHour = 8 + b * 3 + Math.floor(r() * 2);
       const start = day.getTime() + startHour * 3600_000;
       const dur = 60 + Math.floor(r() * 60);
-      const end = start + dur * 60_000;
-      const dw: DeepWorkBlock = {
+      await deepWorkRepo.put({
         date,
         startedAt: start,
-        endedAt: end,
+        endedAt: start + dur * 60_000,
         durationMin: dur,
-        projectId:
-          r() > 0.5 ? "rust-solana" : r() > 0.25 ? "fulltime-job" : "interview-prep",
+        projectId: r() > 0.5 ? "rust-solana" : r() > 0.25 ? "fulltime-job" : "interview-prep",
         distractionCount: Math.floor(r() * 4),
-        focusQuality: (Math.min(5, Math.max(1, Math.ceil(sleepHours - 4))) as 1 | 2 | 3 | 4 | 5),
-      };
-      await db.put("deepWork", dw as DeepWorkBlock & { id?: number });
+        focusQuality: Math.min(5, Math.max(1, Math.ceil(sleepHours - 4))) as 1 | 2 | 3 | 4 | 5,
+      });
     }
 
-    const energyLevel = Math.min(5, Math.max(1, Math.round(sleepHours - 3 + r()))) as 1 | 2 | 3 | 4 | 5;
-    const energy: EnergyLog = { date, hour: 9, level: energyLevel };
-    await db.put("energy", energy as EnergyLog & { id?: number });
+    await energyRepo.put({
+      date,
+      hour: 9,
+      level: Math.min(5, Math.max(1, Math.round(sleepHours - 3 + r()))) as 1 | 2 | 3 | 4 | 5,
+    });
 
-    const mit: Task = {
+    await taskRepo.put({
       date,
       text:
         i === 0
-          ? "Ship the PersonalOS dashboard"
+          ? "Ship the PersonalOS redesign"
           : i % 3 === 0
             ? "Read 1 chapter of the Rust book"
             : i % 3 === 1
@@ -140,8 +97,7 @@ export async function seedIfEmpty(): Promise<void> {
       done: i > 0,
       projectId: "rust-solana",
       createdAt: day.getTime(),
-    };
-    await db.put("tasks", mit as Task & { id?: number });
+    });
   }
 
   await setMeta(SEED_FLAG, true);
