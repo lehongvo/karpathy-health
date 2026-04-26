@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "auto-merge"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "auto-merge"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
