@@ -2,7 +2,10 @@
 
 > Sustainable productivity OS for a multi-tasking dev (backend + Solana/Rust + interview prep), built with citation-backed protocols and a Karpathy-minimal Next.js dashboard.
 
+**Production**: <https://karpathy-health.vercel.app>
 **Sister repo**: [karpathy-rust](https://github.com/lehongvo/karpathy-rust) — strategic plan + dashboard for the Rust/Solana career goal. The two share a design system and link to each other.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lehongvo/karpathy-health&root-directory=web)
 
 ---
 
@@ -38,6 +41,7 @@ Built once, used for years.
 10. [`docs/cadence.md`](./docs/cadence.md) — daily / weekly / monthly / quarterly loops
 11. [`docs/diagnosis.md`](./docs/diagnosis.md) — self-assessment + hidden-cost research
 12. [`docs/decision-log.md`](./docs/decision-log.md) — track non-obvious system pivots
+13. [`docs/09-automation.md`](./docs/09-automation.md) — Vercel deploy, Dependabot, and remote agent routines
 
 ---
 
@@ -63,9 +67,25 @@ pnpm build       # production build
 
 ---
 
+## Deploy & continuous maintenance
+
+| Mechanism | Trigger | Result |
+|---|---|---|
+| **Vercel git auto-deploy** | `git push origin main` | Build + deploy to prod (~60s); root directory = `web/`, framework = Next.js |
+| **Dependabot** (`.github/dependabot.yml`) | Weekly Mon 02:00 UTC | Opens PRs for npm + GitHub Actions deps, scoped `/web`, grouped patch+minor, labels `auto-merge` + `dependencies` |
+| **Auto-merge** (`.github/workflows/auto-merge.yml`) | Dependabot PR with semver-patch or semver-minor + CI green | GitHub squash-merges automatically; major bumps still need human review |
+| **Weekly health check** (remote agent) | Every Sunday 09:00 Asia/Saigon | Curls prod URL, runs `pnpm audit`, flags CVEs and major-version drift; surfaces only — no auto-fix |
+
+Manual deploy (rarely needed; `git push origin main` covers it):
+```bash
+cd web && pnpm exec vercel deploy --prod --yes --token="$VERCEL_TOKEN"
+```
+
+---
+
 ## Tech stack
 
-- **Next.js 15.1.8** App Router (RSC default)
+- **Next.js 15.5.15** App Router (RSC default)
 - **TypeScript** strict mode
 - **Tailwind CSS v4** (CSS-first config via `@theme`)
 - **shadcn/ui** new-york style, `cssVariables: true`
